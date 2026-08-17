@@ -1,0 +1,23 @@
+# Short, human-written business descriptions merged onto the live, introspected
+# DDL (see app/schema_provider.py). We deliberately do NOT hand-maintain full
+# column lists/types here — those are read live from information_schema so the
+# prompt can never drift out of sync with the real database. This file only adds
+# the business context a raw DDL dump can't express.
+
+tables:
+  regions:
+    description: "Macro geographic sales regions (North America, EMEA, APAC, LATAM)."
+  countries:
+    description: "Countries, each belonging to exactly one region."
+  customers:
+    description: "Business customers who place orders. Located in one country."
+  categories:
+    description: "Product categories (e.g. Electronics, Home Goods, Apparel)."
+  products:
+    description: "Sellable products. unit_price is the CURRENT list price — for historical revenue always use order_items.unit_price, which is the price snapshot at time of sale, not this column."
+  orders:
+    description: "One row per customer order. status is one of 'completed', 'cancelled', 'refunded'. Revenue calculations must filter to status = 'completed' unless the user asks about cancellations/refunds specifically."
+  order_items:
+    description: "One row per product line within an order. This is the true fact table — quantity, unit_price (price at time of sale), and discount all live here. Revenue is derived from this table, never assumed."
+  v_order_line_revenue:
+    description: "Pre-joined convenience view: one row per order line item with region/country/category already joined and revenue pre-computed as quantity * unit_price * (1 - discount). Prefer selecting FROM this view over re-joining the base tables by hand — it reduces the chance of a wrong join. Still filter status = 'completed' explicitly when computing revenue totals."

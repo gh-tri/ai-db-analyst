@@ -1,0 +1,84 @@
+# Business glossary — the semantic layer described in design doc §5.2.
+#
+# Why this file exists: column names alone are not enough to answer business
+# questions correctly. "Revenue", "top product", "growth", "last year" are all
+# business terms with a specific, non-obvious computation behind them. This file
+# is injected into every query-generation prompt alongside the raw schema, so the
+# model uses the company's actual definitions instead of guessing.
+
+reference_date:
+  # The dataset is synthetic and was generated to run through this date. All
+  # relative time expressions ("last year", "this quarter", "year to date") are
+  # resolved against this value, NOT against the real wall-clock date — the
+  # dataset does not extend to the real present, so treating today's real date
+  # as "now" would make every "recent" question return empty results.
+  as_of: "2025-12-31"
+  note: >
+    Documented explicitly so it never has to be inferred. When resolving a
+    relative time phrase, always anchor to this date.
+
+metrics:
+  revenue:
+    definition: "Total money earned from completed orders."
+    formula: "SUM(order_items.quantity * order_items.unit_price * (1 - order_items.discount))"
+    notes: >
+      Only include orders where status = 'completed'. Cancelled and refunded
+      orders must be excluded from revenue — this is a common source of
+      overstatement if forgotten.
+    view: "analyst.v_order_line_revenue (column: revenue) already applies this formula and the status filter is still the caller's responsibility unless filtered explicitly."
+
+  units_sold:
+    definition: "Total quantity of product sold."
+    formula: "SUM(order_items.quantity)"
+    notes: "Same completed-orders-only rule as revenue."
+
+  order_count:
+    definition: "Number of distinct orders (not line items)."
+    formula: "COUNT(DISTINCT orders.order_id)"
+
+  average_order_value:
+    definition: "Average revenue per order."
+    formula: "revenue / order_count (computed, not summed then averaged per line item)"
+
+  growth:
+    definition: "Percent change in a metric between two comparable periods."
+    formula: "(current_period_value - prior_period_value) / NULLIF(prior_period_value, 0) * 100"
+    notes: >
+      Always compare like-for-like periods (e.g. Q2 2025 vs Q2 2024, not Q2 2025
+      vs Q1 2025) unless the user explicitly asks for a sequential/period-over-
+      period comparison instead of year-over-year.
+
+  profit_margin:
+    definition: "NOT AVAILABLE in this schema."
+    notes: >
+      There is no product cost column in this dataset — only unit_price is
+      tracked. Any question about profit, margin, or cost must be answered by
+      telling the user this data is not available, and suggesting revenue or
+      units sold as the closest available alternative. Do not estimate or
+      fabricate a cost figure.
+
+ambiguous_terms:
+  top:
+    default_interpretation: "ranked by revenue, descending"
+    note: "If the user says 'top products' without specifying a metric, assume revenue and state that assumption in the answer. If they say 'top by units' or similar, use units_sold instead."
+
+  region:
+    default_interpretation: "the macro geographic region (regions.region_name), not country"
+    note: >
+      Regions are: North America, EMEA, APAC, LATAM. Each country belongs to
+      exactly one region (countries.region_id). If the user says 'which
+      country', use countries.country_name instead of regions.region_name.
+
+  last_year / this_year:
+    default_interpretation: "calendar year relative to reference_date.as_of (2025-12-31)"
+    note: "'last year' = 2024. 'this year' = 2025. 'year to date' = Jan 1 2025 through the reference date."
+
+dimensions:
+  region_hierarchy: "regions -> countries -> customers"
+  product_hierarchy: "categories -> products"
+  order_grain: "orders (1) -> order_items (many); order_items is the true fact table"
+
+unsupported:
+  - "Any request to modify, delete, insert, or export raw data outside of read-only aggregate/lookup queries."
+  - "Personally identifiable customer data beyond what's needed to answer an aggregate business question (e.g. do not return raw customer email lists on request without a clear analytical purpose)."
+  - "Forecasting/prediction of future periods — this system answers questions about historical data only; it does not model or predict."

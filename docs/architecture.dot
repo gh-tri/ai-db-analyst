@@ -1,0 +1,38 @@
+digraph AIDatabaseAnalystSimple {
+    rankdir=LR;
+    fontname="Helvetica";
+    node [fontname="Helvetica", fontsize=14, shape=box, style="rounded,filled", fillcolor="#f4f6fb", color="#5468b0", margin="0.28,0.2"];
+    edge [fontname="Helvetica", fontsize=11, color="#666666", penwidth=1.2];
+    graph [fontsize=17, labelloc=t, fontname="Helvetica-Bold", pad="0.35", nodesep="0.6", ranksep="0.85"];
+
+    {rank=same; UI; API;}
+    UI [label="Chat UI\n(Streamlit)", fillcolor="#eef2ff"];
+    API [label="API\n(FastAPI)", fillcolor="#eef2ff"];
+    UI -> API [dir=both, label="chat", minlen=1];
+
+    subgraph cluster_pipeline {
+        label="Agent pipeline";
+        style=dashed; color="#999999"; fontsize=13;
+        labelloc=t;
+        Understand [label="Understand &\ngenerate query"];
+        Validate [label="Validate &\nexecute\n(read-only)"];
+        Explain [label="Interpret &\nground answer"];
+
+        Understand -> Validate;
+        Validate -> Explain;
+        Validate -> Understand [label="self-correct\non error", style=dashed, color="#c0392b", fontcolor="#c0392b", constraint=false];
+    }
+
+    LLM [label="OpenAI\nGPT-4o / mini", shape=ellipse, fillcolor="#fde8e8", color="#c0392b"];
+    PG [label="PostgreSQL\nbusiness data", shape=cylinder, fillcolor="#eafaf1", color="#27ae60"];
+    {rank=same; LLM; PG;}
+
+    API -> Understand [label="question"];
+    Explain -> API [label="answer + SQL used + assumptions", style=dashed, constraint=false];
+
+    Understand -> LLM [dir=both, color="#c0392b", style=dotted, constraint=false];
+    Explain -> LLM [dir=both, color="#c0392b", style=dotted, constraint=false];
+    Validate -> PG [dir=both, color="#27ae60", style=dotted, constraint=false];
+
+    label="AI Database Analyst — architecture at a glance";
+}

@@ -1,0 +1,27 @@
+[project]
+name = "ai-db-analyst"
+version = "0.1.0"
+description = "AI Database Analyst capstone — natural language interface over a relational business database"
+requires-python = ">=3.11"
+dependencies = [
+    "psycopg2-binary==2.9.9",
+    "Faker==26.0.0",
+    "sqlglot==25.1.0",
+    "openai==1.51.0",
+    # openai==1.51.0's internal HTTP client construction breaks under
+    # httpx>=0.28 (httpx removed a constructor argument the SDK still passes)
+    # — TypeError: Client.__init__() got an unexpected keyword argument
+    # 'proxies'. Pinned below <0.28 until the openai package is upgraded past
+    # the version that fixed this (tracked upstream; revisit if bumping openai).
+    "httpx<0.28",
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.30.6",
+    "streamlit==1.38.0",
+    "pyyaml==6.0.2",
+    "python-dotenv==1.0.1",
+    "pydantic==2.9.2",
+    "tabulate==0.9.0",
+]
+
+[tool.uv]
+package = false
