@@ -28,7 +28,7 @@ Full justification for each is in `docs/design_decisions.md`. Short version:
 | OpenAI (GPT-4o + GPT-4o-mini) | Native function-calling maps directly onto the hybrid query-generation design; model tiering for cost |
 | Hand-rolled pipeline, not LangGraph/CrewAI | Workflow is a short pipeline with one retry cycle, not a multi-agent graph — a framework wouldn't earn its keep yet |
 | Hybrid templates + raw-SQL fallback | Templates make SQL injection structurally impossible on the common path; raw SQL stays available for the long tail |
-| Streamlit UI | 3-day budget spent on pipeline correctness, not frontend polish — that's what's actually being evaluated |
+| Streamlit UI | 
 
 ## Project structure
 
